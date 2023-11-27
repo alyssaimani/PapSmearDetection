@@ -1,0 +1,204 @@
+{% load mathfilters %}
+{% block content %}
+<head>
+	<script>
+		window.onload = function() {
+			window.print();
+		};
+	</script>
+	<style>
+		@media print {
+		   body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+	        }
+
+	        header {
+	            background-color: #417690;
+	            color: white;
+	            padding: 10px;
+	            text-align: center;
+	        }
+
+	        footer {
+	            background-color: #333;
+	            color: white;
+	            padding: 10px;
+	            text-align: center;
+	            position: fixed;
+	            bottom: 0;
+	            width: 100%;
+	        }
+
+
+		}
+
+
+
+	        header {
+	            background-color: #417690;
+	            color: white;
+	            padding: 10px;
+	            text-align: center;
+	        }
+
+	        footer {
+	            background-color: #333;
+	            color: white;
+	            padding: 10px;
+	            text-align: center;
+	            position: fixed;
+	            bottom: 0;
+	            width: 100%;
+	        }
+	</style>
+</head>
+<body>
+	<header>
+        <h1>InDRI</h1>
+        <h2>(Intelligent Diagnosis of Radiology Images)</h2>
+    </header>
+<center><h1>HASIL DIAGNOSA PASIEN</h1></center>
+
+{% if patient_to_print %}
+<table>
+	{% for patient in patient_to_print %}
+	<tr>
+		<td>
+			Name Pasien
+		</td>
+		<td>
+			: {{ patient.patient_data.patientName }} 
+		</td>
+	</tr>
+	<tr>
+		<td>
+			No Pasien
+		</td>
+		<td>
+			: {{ patient.patient_data.patientID }}
+		</td>
+	</tr>
+	<tr>
+		<td>
+			Tanggal Lahir
+		</td>
+		<td>
+			: {{ patient.patient_data.patientBirthDate }}
+		</td>
+	</tr>
+	<tr>
+		<td>
+			Jenis Kelamin
+		</td>
+		<td>
+			: {{ patient.patient_data.get_patientGender_display }}
+		</td>
+	</tr>
+	<tr>
+		<td>
+			Tanggal Gambar Diambil 
+		</td>
+				<td>
+                   : {{ patient.imageDate|date:"Y-m-d" }}
+                </td>
+			</tr>
+	{% endfor %}
+</table>
+
+<table width="100%" border="0">
+            <thead>
+                <tr>
+                    <th>Gambar Asli</th>
+                    <th>Visualisasi Oleh AI</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+
+			{% for patient in patient_to_print %}
+				
+				<br><br>
+
+			<tr>
+				<td align="center">
+					<img src="/media/{{ patient.file }}"  width="224" height="224">
+					
+                </td>
+                <td align="center">
+                    <img src="/media/static/{{ patient.limeImageResult }}" width="224" height="224">
+                    
+                </td>
+            </tr>
+            
+			<tr>
+				<td colspan="2" align="center" style="padding-top: 10;">
+                       <h2>Hasil Prediksi</h2>
+                </td>
+			</tr>
+            <tr>
+                <td colspan="2">
+                    Model mendiagnosis bahwa gambar Chest X-Ray yang diupload terindikasi 
+                        {% with res_printed=0 %}
+                        {% for i in patient.get_float_list %}
+                            {% if i > 0.14 %}
+                                {% if res_printed > 0 %}
+                                    ,
+                                {% endif %}
+                                {% if forloop.counter0 == 2 %}
+                                    <b>NORMAL</b>
+                                {% elif forloop.counter0 == 0 %}
+                                    <b>TERINFEKSI COVID</b>
+                                {% elif forloop.counter0 == 1 %}
+                                    <b>TERKENA LUNG OPACITY</b>
+                                {% elif forloop.counter0 == 3 %}
+                                    <b>TERKENA VIRAL PNEUMONIA</b>
+                                {% endif %}
+                                dengan nilai confidence ({{ i|floatformat:"4"|mul:100|floatformat:"2" }}%)
+                                {% with res_printed=res_printed|add:1 %}
+                                {% endwith %}
+                                {% endif %}
+                        {% endfor %}
+                        . Harap perhatikan <b><i>Visualisasi Oleh AI</i></b> yang ditampilkan.
+                        {% endwith %}
+
+
+                  </p>
+                </td>
+                
+                    
+            </tr>
+            <tr>
+            	<td>
+            		Prediksi Gambar
+            	</td>
+            	<td>
+                        <!-- {{item.get_float_list}} -->
+
+                        {% for i in patient.get_float_list %}
+                            {% if forloop.counter0 == 2 %}
+                               Normal
+                            {% elif forloop.counter0 == 0 %}
+                               Terinfeksi COVID
+                            {% elif forloop.counter0 == 1 %}
+                               Terkena Lung Opacity
+                            {% elif forloop.counter0 == 3 %}
+                               Terkena Viral Pneumonia 
+                            {% endif %}
+                            ({{ i|floatformat:"4"|mul:100|floatformat:"2" }}%) <br>
+                        {% endfor %}  
+
+                    </td>
+            </tr>
+            </tbody>
+        </table>
+        <footer>
+        		<p>&copy; 2023 BDSRC and AIRDC | Binus University. All Rights Reserved.</p>
+    	</footer>
+    </body>
+			{% endfor%}
+
+			{% endif %}
+{% endblock %}

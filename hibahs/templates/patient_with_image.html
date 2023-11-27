@@ -1,0 +1,202 @@
+<!-- fileuploads/templates/upload_and_display.html -->
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% load mathfilters %}
+
+{% block content %}
+<head>
+  <style>
+    /* Modal styles */
+    .modal {
+        display: none; 
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 999; /* Adjust the z-index value as needed */
+    }
+
+    /* Modal content styles */
+    .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        text-align: center;
+    }
+
+    /* Loader styles (you can define your loader styles here) */
+    .loader {
+        border: 4px solid #f3f3f3; /* Light gray border */
+        border-top: 4px solid #3498db; /* Blue border */
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 2s linear infinite; /* Spinning animation */
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+</head>
+<body>
+        {% if alert_message %}
+            {{ alert_message }}"
+            
+        {% endif %}
+
+
+        <div id="loaderModal" class="modal">
+                <div class="modal-content">
+                    <div class="loader"></div>
+                </div>
+        </div>
+
+        <h3>Data Pasien:</h3>
+        <h1>Nama Pasien:  {{ object.patientName }}</h1>
+
+        <table width="100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Gambar Asli</th>
+                    <th>Visualisai AI</th>
+                    <th>Hasil Diagnosis</th>
+                    <th>Prediksi</th>
+                    <th>Tanggal Gambar diambil</th>
+                    <th colspan="2" ></th>
+                </tr>
+            </thead>
+            <tbody>
+            <form method="post" action="" onsubmit="showLoader()">
+            {% for item in object.uploadedfile_set.all %}
+                <tr>
+                    {% if item.diagnosisResult %}
+                        <td>
+                            <input type="checkbox" name="selected_files" value="{{ item.file.name }}, {{ item.id }}" disabled>
+                        </td>
+                    {% elif not item.diagnosisResult %}
+                        <td>
+                            <input type="checkbox" name="selected_files" value="{{ item.file.name }}, {{ item.id }}" enabled>
+                        </td>
+                    {% endif %}
+
+                    <td><a href="{{ item.file.url }}">
+                        <img src="/media/{{ item.file.name }}" width="100"></a>
+                    </td>
+
+                    
+
+                    {% if item.diagnosisResult %}
+                        <td>
+                             <a href="/media/static/{{ item.limeImageResult }}">
+                                <img src="/media/static/{{ item.limeImageResult }}" width="100"></a>
+                        </td>
+                    {% elif not item.diagnosisResult %}
+                        <td>
+                            Belum ada data. Silahkan lakukan inference pada data ini.
+                        </td>
+                    {% endif %}
+
+                    <td>
+                        {% if item.diagnosisResult %}
+                            Model mendiagnosis bahwa gambar Chest X-Ray yang diupload terindikasi 
+                                {% with res_printed=0 %}
+                                {% for i in item.get_float_list %}
+                                    {% if i > 0.14 %}
+                                        {% if res_printed > 0 %}
+                                            ,
+                                        {% endif %}
+                                        {% if forloop.counter0 == 2 %}
+                                            <b>NORMAL</b>
+                                        {% elif forloop.counter0 == 0 %}
+                                            <b>TERINFEKSI COVID</b>
+                                        {% elif forloop.counter0 == 1 %}
+                                            <b>TERKENA LUNG OPACITY</b>
+                                        {% elif forloop.counter0 == 3 %}
+                                            <b>TERKENA VIRAL PNEUMONIA</b>
+                                        {% endif %}
+                                        dengan nilai confidence ({{ i|floatformat:"4"|mul:100|floatformat:"2" }}%)
+                                        {% with res_printed=res_printed|add:1 %}
+                                        {% endwith %}
+                                        {% endif %}
+                                {% endfor %}
+                                . Harap perhatikan <b><i>Visualisasi Oleh AI</i></b> yang ditampilkan.
+                                {% endwith %}
+
+                        {% elif not item.diagnosisResult %}
+                            Belum ada data. Silahkan lakukan inference pada data ini.
+                        {% endif %}  
+
+
+                  </p>
+                </td>
+
+                    <td>
+                        {% if item.diagnosisResult %}
+
+                            {% for i in item.get_float_list %}
+                                {% if forloop.counter0 == 2 %}
+                                   Normal
+                                {% elif forloop.counter0 == 0 %}
+                                   Terinfeksi COVID
+                                {% elif forloop.counter0 == 1 %}
+                                   Terkena Lung Opacity
+                                {% elif forloop.counter0 == 3 %}
+                                   Terkena Viral Pneumonia 
+                                {% endif %}
+                                ({{ i|floatformat:"4"|mul:100|floatformat:"2" }}%) <br>
+                            {% endfor %}
+                        {% elif not item.diagnosisResult %}
+                            Belum ada data. Silahkan lakukan inference pada data ini.
+                        {% endif %}  
+
+                    </td>
+                    <td>
+                        {{ item.imageDate|date:"Y-m-d" }} 
+                    </td>
+                    <td>
+                        <!-- <input type="text" name="idPrint" value="{{ item.id }}"> -->
+
+                        {% if item.diagnosisResult %}
+                            <a a href="{% url 'print_item_view' item.id %}" class="button is-danger" name="action" value="print">Print</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'delete_item_view' item.id %}" class="button" name="action" value="delete" style="background-color: #ba2121; color: white;">Hapus</a>
+                    </td>
+                </tr>
+            </tbody>
+            {% empty %}
+                <li>No files uploaded yet.</li>
+            {% endfor %}
+            {% csrf_token %}
+            <button type="submit" id="inference-button" class="button is-success is-fullwidth is-medium mt-5" name="action" value="inference">Inference</button>
+
+            </form>
+        </table>
+
+        
+
+
+</body>
+<script>
+        function showLoader() {
+            var modal = document.getElementById('loaderModal');
+            modal.style.display = 'block';
+            // You can add more loading logic here if needed
+        }
+
+        
+    </script>
+{% endblock %}
+

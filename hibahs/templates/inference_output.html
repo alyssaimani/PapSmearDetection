@@ -1,0 +1,100 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% load mathfilters %}
+
+{% block branding %}
+    <h1 id="site-name"><a href="{% url 'admin:index' %}">InDRI (Intelligent Diagnosis of Radiology Images)</a></h1>
+{% endblock %}
+
+<html>
+<head>
+    <title>Upload Results</title>
+    
+</head>
+{% block content %}
+
+<body>
+    <h1>Results</h1>
+
+    <table >
+        <thead>
+            <tr>
+                <th>Gambar Asli</th>
+                <th>Gambar AI</th>
+                <th>Hasil Diagnosis</th>
+                <th>Penyakit</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for data in combined_data %}
+            <tr>
+
+                <td>
+                    <img src="/media/{{ data.filename }}" width="224" height="224">
+                </td>
+                <td>
+                    <img src="/media/static/cam_{{ data.limeImage }}.jpg" width="224" height="224">
+                </td>
+                <td>
+                    Model mendiagnosis bahwa gambar Chest X-Ray yang diupload terindikasi 
+                        {% with res_printed=0 %}
+                        {% for i in data.result %}
+                            {% if i > data.threshold %}
+                                {% if res_printed > 0 %}
+                                    ,
+                                {% endif %}
+                                {% if forloop.counter0 == 2 %}
+                                    <b>NORMAL</b>
+                                {% elif forloop.counter0 == 0 %}
+                                    <b>TERINFEKSI COVID</b>
+                                {% elif forloop.counter0 == 1 %}
+                                    <b>TERKENA LUNG OPACITY</b>
+                                {% elif forloop.counter0 == 3 %}
+                                    <b>TERKENA VIRAL PNEUMONIA</b>
+                                {% endif %}
+                                dengan nilai confidence ({{ i|floatformat:"4"|mul:100|floatformat:"2" }}%)
+                                {% with res_printed=res_printed|add:1 %}
+                                {% endwith %}
+                                {% endif %}
+                        {% endfor %}
+                        . Harap perhatikan <b><i>Visualisasi Oleh AI</i></b> yang ditampilkan.
+                        {% endwith %}
+
+
+                  </p>
+                </td>
+                <td>
+                        {% for i in data.result %}
+                            {% if forloop.counter0 == 2 %}
+                               Normal
+                            {% elif forloop.counter0 == 0 %}
+                               Terinfeksi COVID
+                            {% elif forloop.counter0 == 1 %}
+                               Terkena Lung Opacity
+                            {% elif forloop.counter0 == 3 %}
+                               Terkena Viral Pneumonia 
+                            {% endif %}
+                            ({{ i|floatformat:"4"|mul:100|floatformat:"2" }}%) <br>
+                        {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>Gambar Asli</td>
+                <td>Visualisasi Oleh AI</td>
+
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+
+{% endblock %}
+
+
+
+</body>
+
+</html>
