@@ -36,4 +36,4 @@ It is a computer-aided diagnosis of lung disease using image-based machine learn
 
 9. you need to create admin account by run this command
 
-10. run command ```python manage.py createsuperuser```
+	```python manage.py createsuperuser```
