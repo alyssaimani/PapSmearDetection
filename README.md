@@ -40,4 +40,4 @@ It is a computer-aided diagnosis of lung disease using image-based machine learn
 
 
 # Screenshots App
-![Local Image][media/uploads/1.png]
+![Local Image](media/uploads/1.png)
