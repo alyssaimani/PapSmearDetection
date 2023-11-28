@@ -1,6 +1,8 @@
 # InDRI (Intelligent Diagnosis of Radiology Images)
 
-It is a computer-aided diagnosis of lung disease using image-based machine learning.  
+It is a computer-aided diagnosis of lung disease using image-based machine learning. 
+
+## Step to INSTALL 
 
 1. ```git clone https://github.com/mahmudisnan/indri.git```
 
@@ -8,18 +10,18 @@ It is a computer-aided diagnosis of lung disease using image-based machine learn
 
 3. run command ```pip install -r requirements.txt```
 
-4. rename .env.example to .env
+4. rename ```.env.example``` to ```.env```
 
 5. on .env file you need to set your config
 
-``SECRET_KEY=YOUR_KEY
-DB_NAME=YOUR_DB_NAME
-DB_USER=YOUR_DB_USER
+``SECRET_KEY=YOUR_KEY<br>
+DB_NAME=YOUR_DB_NAME<br>
+DB_USER=YOUR_DB_USER<br>
 DB_PASS=YOUR_DB_PASS``
 
  	5.1 for your SECRET_KEY run this command 
 
-	5.2 ```python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())”```
+	5.2 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())”
 
 	5.3 paste the generated key to your .env file
 
