@@ -24,7 +24,7 @@ It is a computer-aided diagnosis of lung disease using image-based machine learn
 
  	5.1 for your SECRET_KEY run this command 
 
-	5.2 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())”
+	python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())”
 
 	5.3 paste the generated key to your .env file
 
