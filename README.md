@@ -14,13 +14,13 @@ It is a computer-aided diagnosis of lung disease using image-based machine learn
 
 5. on .env file you need to set your config
 
-```SECRET_KEY=YOUR_KEY
+``SECRET_KEY=YOUR_KEY``
 
-DB_NAME=YOUR_DB_NAME 
+``DB_NAME=YOUR_DB_NAME`` 
 
-DB_USER=YOUR_DB_USER
+``DB_USER=YOUR_DB_USER``
 
-DB_PASS=YOUR_DB_PASS```
+``DB_PASS=YOUR_DB_PASS``
 
  	5.1 for your SECRET_KEY run this command 
 
