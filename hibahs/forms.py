@@ -35,11 +35,12 @@ class UploadFileForm(forms.ModelForm):
         to_field_name='id'
     )
     
-    file = MultipleFileField()
+    image = MultipleFileField()
+    annotation = MultipleFileField()
 
     class Meta:
         model = UploadedFile
-        fields = ['file', 'patientName', 'imageDate']
+        fields = ['image', 'annotation', 'patientName', 'imageDate']
 
     imageDate = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date'}),

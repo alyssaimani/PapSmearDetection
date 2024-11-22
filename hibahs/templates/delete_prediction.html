@@ -18,7 +18,7 @@
 			Name Pasien
 		</td>
 		<td>
-			: {{ file.patient_data.patientName }} 
+			: {{ file.rawImage.patient_data.patientName }} 
 		</td>
 	</tr>
 	<tr>
@@ -26,7 +26,7 @@
 			No Pasien
 		</td>
 		<td>
-			: {{ file.patient_data.patientID }}
+			: {{ file.rawImage.patient_data.id }}
 			
 		</td>
 	</tr>
@@ -35,7 +35,7 @@
 			Gambar Asli
 		</td>
 		<td>
-			<img src="/media/{{ file.image }}" width="100"></a>
+			<img src="/media/static/{{ file.image }}" width="100"></a>
 		</td>
 	</tr>
 	<tr>

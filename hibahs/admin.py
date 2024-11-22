@@ -15,11 +15,12 @@ from datetime import datetime
 
 
 
-
-from hibahs.LimeViz import get_image, get_pil_transform, batch_predict, batch_explaination
+from hibahs.utils import get_cropped_images, batch_predict, DinoModelWrapper, get_preprocess_transform
+# from hibahs.LimeViz import get_image, get_pil_transform, batch_predict, batch_explaination
 from skimage.segmentation import mark_boundaries
 import cv2
 import os
+import torch
 
 
 
@@ -27,9 +28,9 @@ import os
 
 
 
-admin.site.site_header = 'InDRI (Intelligent Diagnosis of Radiology Images)'
+admin.site.site_header = 'Pap Smear Detection'
 # Register your models here.
-from .models import UploadedFile, PatientData as PatientDataModel
+from .models import UploadedFile, PatientData as PatientDataModel, CroppedImage
 
 class PatientUpload(admin.StackedInline):
 	model = UploadedFile
@@ -88,11 +89,33 @@ class PatientDetailView(PermissionRequiredMixin, DetailView):
     model = PatientDataModel
 
     def get_context_data(self, **kwargs):
-        return {
-            **super().get_context_data(**kwargs),
+        
+        patient = self.get_object()  # Retrieves the PatientDataModel instance for the patient
+
+        # Retrieve all uploaded files for this patient
+        uploaded_files = UploadedFile.objects.filter(patientName=patient)
+
+        # Check if each uploaded file has a corresponding CroppedImage
+        predicted_files = [
+            uploaded_file for uploaded_file in uploaded_files 
+            if CroppedImage.objects.filter(rawImage=uploaded_file).exists()
+        ]
+    
+
+        # Add the necessary context data
+        context = super().get_context_data(**kwargs)
+        context.update({
             **admin.site.each_context(self.request),
             "opts": self.model._meta,
-        }
+            "predicted_files": predicted_files            
+        })
+        
+        return context
+        # return {
+        #     **super().get_context_data(**kwargs),
+        #     **admin.site.each_context(self.request),
+        #     "opts": self.model._meta,
+        # }
     
     def post(self, request, *args, **kwargs):
        
@@ -101,59 +124,48 @@ class PatientDetailView(PermissionRequiredMixin, DetailView):
             action = request.POST.get('action')
 
             if action == 'inference':
-                selected_patient = request.POST.getlist('selected_files')
-                if not selected_patient:
+                selected_files = request.POST.getlist('selected_files')
+                if not selected_files:
 
                     return HttpResponse(f'<script>alert("Silahkan Pilih Salah satu image yang mau didiagnosa"); window.history.back();</script>')
 
                 else:
-                    filenames = []
-                    ids = []
+                    MODEL_PATH = "media/best_model_multitask_part_4.pt"
+                    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                    model = DinoModelWrapper(device=device)
+                    model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+                    model.to(device)
 
-                    for item in selected_patient:
-                        parts = item.split(', ')  # Split each item by ', '
-                        if len(parts) == 2:
-                            filenames.append(parts[0])
-                            ids.append(parts[1])
+                    for param in model.parameters():
+                        param.requires_grad = False
+                    model.eval()
 
                     base_directory = 'media/'
 
-                    image = [get_image(base_directory + path) for path in filenames]
+                    files = UploadedFile.objects.filter(id__in=selected_files)
+                    
+                    for file in files: 
+                        path_image = str(file.image)
+                        path_annotation = str(file.annotation)
 
+                        # crop raw image
+                        cropped_images = get_cropped_images(base_directory + path_image, base_directory + path_annotation)
+                        
+                        # predict cropped images
+                        _, pred_labels = batch_predict(model, cropped_images, transform=get_preprocess_transform())
+                        print('result prediction:',pred_labels)
 
-                    pill_transform = get_pil_transform()
-                    image_transf = [pill_transform(img) for img in image]
-
-                    probs = batch_predict(image_transf)
-                    # print('prob',probs)
-                    temps, masks = batch_explaination(image_transf)
-                    limeImage=[]
-                    for i in range(len(temps)):
-                        marked_img = mark_boundaries(temps[i], masks[i])
-                        conv_img = (marked_img * 255).astype('uint8')
-                        bgr_img =  cv2.cvtColor(conv_img, cv2.COLOR_RGB2BGR)
-                        limeImage = "cam_" + str(ids[i]) + ".jpg"
-                        cv2.imwrite(os.path.join('media/static', limeImage), bgr_img)
-
-                    threshold = 0.14
-
-                    # probs = [[6.95283189e-02, 1.94228895e-03, 1.14850536e-01, 8.13678920e-01], [9.99474347e-01, 5.25628682e-04, 1.26138291e-08, 3.79446767e-08]]
-
-                    combined_data = []
-
-                    for i in range(len(probs)):
-                        UploadedFile.objects.filter(id=ids[i]).update(diagnosisResult=probs[i], limeImageResult="cam_" + str(ids[i]) + ".jpg")
-                        combined_data.append({
-                            'result': probs[i],
-                            'filename': filenames[i],
-                            'threshold': threshold,
-                            'limeImage': ids[i],
-                        })
-                
-                    # return HttpResponse(f'ID: {filenames}')
-                    return render(request, "inference_output.html",   {'combined_data': combined_data})
-
-            
+                        # save cropped images into storage
+                        for idx,image in enumerate(cropped_images):
+                            filename = f"cropped_{file.id}_{idx}.jpg"
+                            save_path = os.path.join('media/static', filename)
+                            image.save(save_path)
+                        
+                            # save to database
+                            CroppedImage.objects.create(rawImage_id=file.id, image=filename, predictionResult=pred_labels[idx], predictionDate=datetime.now())
+                    
+                    return redirect(request.get_full_path())
+                    # return render(request, "inference_output.html",   {'predictionResults': predictionResults})
 
         return render(request, self.template_name)
 
@@ -182,11 +194,14 @@ class PatientChoiceField(forms.ModelChoiceField):
         return f'{obj.patientID} - {obj.patientName}'
 
 
-def validate_file_type(value):
+def validate_image_type(value):
     if not value.name.lower().endswith(('.png', '.jpg', '.jpeg')):
         raise ValidationError(_('Silahkan upload gambar dengan tipe file PNG, JPEG atau JPG'))
 
 
+def validate_label_type(value):
+    if not value.name.lower().endswith(('.geojson')):
+        raise ValidationError(_('Silahkan upload label dengan tipe file GEOJSON'))
 
 class UploadFileForm(forms.Form):
     patientName = PatientChoiceField(
@@ -196,7 +211,9 @@ class UploadFileForm(forms.Form):
         label="Nama Pasien"
     )
     
-    files = MultipleFileField(validators=[validate_file_type])
+    image = MultipleFileField(validators=[validate_image_type])
+    
+    annotation = MultipleFileField(validators=[validate_label_type])
 
     current_date = datetime.now().date()
 
@@ -208,7 +225,7 @@ class UploadFileForm(forms.Form):
 
     class Meta:
         model = UploadedFile
-        fields = ['file', 'patientName', 'imageDate']
+        fields = ['image', 'annotation', 'patientName', 'imageDate']
 
     
 
@@ -262,8 +279,12 @@ class UploadedFile_list(admin.ModelAdmin):
                 selected_patient = form.cleaned_data['patientName']
                 selected_patient_id = selected_patient.id
                 selected_tanggaldiambil = form.cleaned_data['imageDate']
-                for uploaded_file in request.FILES.getlist('files'):
-                    UploadedFile.objects.create(file=uploaded_file, patientName_id=selected_patient_id, imageDate=selected_tanggaldiambil)
+                images = request.FILES.getlist('image')
+                annotations = request.FILES.getlist('annotation')
+                for image_file, annotation_file in zip(images, annotations):                  
+                    UploadedFile.objects.create(
+                        image=image_file, annotation=annotation_file, patientName_id=selected_patient_id, imageDate=selected_tanggaldiambil
+                    )
                 return redirect('../')
         else:
             form = UploadFileForm()

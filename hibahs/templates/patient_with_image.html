@@ -69,110 +69,43 @@
                 <tr>
                     <th></th>
                     <th>Gambar Asli</th>
-                    <th>Visualisai AI</th>
-                    <th>Hasil Diagnosis</th>
-                    <th>Prediksi</th>
                     <th>Tanggal Gambar diambil</th>
-                    <th colspan="2" ></th>
+                    <th colspan="3"></th>
                 </tr>
             </thead>
             <tbody>
             <form method="post" action="" onsubmit="showLoader()">
             {% for item in object.uploadedfile_set.all %}
                 <tr>
-                    {% if item.diagnosisResult %}
+                    {% if item in predicted_files %}
                         <td>
-                            <input type="checkbox" name="selected_files" value="{{ item.file.name }}, {{ item.id }}" disabled>
+                            <input type="checkbox" name="selected_files" value="{{ item.id }}" disabled>
                         </td>
                     {% elif not item.diagnosisResult %}
                         <td>
-                            <input type="checkbox" name="selected_files" value="{{ item.file.name }}, {{ item.id }}" enabled>
+                            <input type="checkbox" name="selected_files" value="{{ item.id }}" enabled>
                         </td>
                     {% endif %}
 
-                    <td><a href="{{ item.file.url }}">
-                        <img src="/media/{{ item.file.name }}" width="100"></a>
+                    <td><a href="{{ item.image.url }}">
+                        <img src="/media/{{ item.image.name }}" width="100"></a>
                     </td>
 
-                    
-
-                    {% if item.diagnosisResult %}
-                        <td>
-                             <a href="/media/static/{{ item.limeImageResult }}">
-                                <img src="/media/static/{{ item.limeImageResult }}" width="100"></a>
-                        </td>
-                    {% elif not item.diagnosisResult %}
-                        <td>
-                            Belum ada data. Silahkan lakukan inference pada data ini.
-                        </td>
-                    {% endif %}
-
-                    <td>
-                        {% if item.diagnosisResult %}
-                            Model mendiagnosis bahwa gambar Chest X-Ray yang diupload terindikasi 
-                                {% with res_printed=0 %}
-                                {% for i in item.get_float_list %}
-                                    {% if i > 0.14 %}
-                                        {% if res_printed > 0 %}
-                                            ,
-                                        {% endif %}
-                                        {% if forloop.counter0 == 2 %}
-                                            <b>NORMAL</b>
-                                        {% elif forloop.counter0 == 0 %}
-                                            <b>TERINFEKSI COVID</b>
-                                        {% elif forloop.counter0 == 1 %}
-                                            <b>TERKENA LUNG OPACITY</b>
-                                        {% elif forloop.counter0 == 3 %}
-                                            <b>TERKENA VIRAL PNEUMONIA</b>
-                                        {% endif %}
-                                        dengan nilai confidence ({{ i|floatformat:"4"|mul:100|floatformat:"2" }}%)
-                                        {% with res_printed=res_printed|add:1 %}
-                                        {% endwith %}
-                                        {% endif %}
-                                {% endfor %}
-                                . Harap perhatikan <b><i>Visualisasi Oleh AI</i></b> yang ditampilkan.
-                                {% endwith %}
-
-                        {% elif not item.diagnosisResult %}
-                            Belum ada data. Silahkan lakukan inference pada data ini.
-                        {% endif %}  
-
-
-                  </p>
-                </td>
-
-                    <td>
-                        {% if item.diagnosisResult %}
-
-                            {% for i in item.get_float_list %}
-                                {% if forloop.counter0 == 2 %}
-                                   Normal
-                                {% elif forloop.counter0 == 0 %}
-                                   Terinfeksi COVID
-                                {% elif forloop.counter0 == 1 %}
-                                   Terkena Lung Opacity
-                                {% elif forloop.counter0 == 3 %}
-                                   Terkena Viral Pneumonia 
-                                {% endif %}
-                                ({{ i|floatformat:"4"|mul:100|floatformat:"2" }}%) <br>
-                            {% endfor %}
-                        {% elif not item.diagnosisResult %}
-                            Belum ada data. Silahkan lakukan inference pada data ini.
-                        {% endif %}  
-
-                    </td>
                     <td>
                         {{ item.imageDate|date:"Y-m-d" }} 
                     </td>
                     <td>
-                        <!-- <input type="text" name="idPrint" value="{{ item.id }}"> -->
-
-                        {% if item.diagnosisResult %}
+                        {% if item in predicted_files %}
                             <a a href="{% url 'print_item_view' item.id %}" class="button is-danger" name="action" value="print">Print</a>
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{% url 'delete_item_view' item.id %}" class="button" name="action" value="delete" style="background-color: #ba2121; color: white;">Hapus</a>
+                        {% if item in predicted_files %}
+                                <a href="{% url 'show_prediction_view' item.id %}" class="button" name="action" value="show" >Prediction</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'delete_uploaded_view' item.id %}" class="button" name="action" value="delete" style="background-color: #ba2121; color: white;">Hapus</a>
                     </td>
                 </tr>
             </tbody>

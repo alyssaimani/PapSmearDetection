@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 import ssl
 from skimage.segmentation import mark_boundaries
-from LimeViz import get_image, get_pil_transform, batch_predict, batch_explaination
+# from LimeViz import get_image, get_pil_transform, batch_explaination
 ssl._create_default_https_context = ssl._create_unverified_context
 
 app = Flask(__name__)
@@ -45,28 +45,32 @@ def upload():
             os.remove('static/phototopredict.jpg')
 
         filename = photos.save(request.files['photo'], name=FIGUPLOAD)
-        image = get_image('static/'+filename)
-        BASE_PATH = 'static/'
-        img_0 = get_image(BASE_PATH + 'COVID-1023.png')
-        img_1 = get_image(BASE_PATH + 'Lung_Opacity-1006.png')
+        # image = get_image('static/'+filename)
+        # BASE_PATH = 'static/'
+        # img_0 = get_image(BASE_PATH + 'COVID-1023.png')
+        # img_1 = get_image(BASE_PATH + 'Lung_Opacity-1006.png')
         # img_2 = get_image(BASE_PATH + 'Viral Pneumonia-1003.png')
         # img_3 = get_image(BASE_PATH + 'Viral Pneumonia-1003.png')
-        img_all = [image]
+        # img_all = [image]
 
-        pill_transform = get_pil_transform()
-        image_transf = [pill_transform(img) for img in img_all]
-        
-        
-        probs = batch_predict(image_transf)
+        # pill_transform = get_pil_transform()
+        # image_transf = [pill_transform(img) for img in img_all]
+                
+        # probs = batch_predict(image_transf)
         # print('prob',probs)
-        temps, masks = batch_explaination(image_transf)
-        result=[]
-        for i in range(len(temps)):
-            marked_img = mark_boundaries(temps[i], masks[i])
-            conv_img = (marked_img * 255).astype('uint8')
-            bgr_img =  cv2.cvtColor(conv_img, cv2.COLOR_RGB2BGR)
-            result.append(bgr_img)
-        cv2.imwrite(os.path.join('static', "cam.jpg"), result[0])
+        # temps, masks = batch_explaination(image_transf)
+        # result=[]
+        # for i in range(len(temps)):
+        #     marked_img = mark_boundaries(temps[i], masks[i])
+        #     conv_img = (marked_img * 255).astype('uint8')
+        #     bgr_img =  cv2.cvtColor(conv_img, cv2.COLOR_RGB2BGR)
+        #     result.append(bgr_img)
+        # cv2.imwrite(os.path.join('static', "cam.jpg"), result[0])
+
+        # Pap Smear
+        # load images
+        cropped_images = get_cropped_images('static/'+ filename)
+        
 
         # model.load_state_dict(torch.load("deployed_asset/22-08-01_12-51-21_normal_best_model.pth",map_location=device))
         # model.train(False)
